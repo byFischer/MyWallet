@@ -19,3 +19,8 @@ val CreamCard = Color(0xFFFAF6EF)
 // Metin renkleri (krem arka plan üzerinde okunabilir koyu ton)
 val TextDark = Color(0xFF3B2E26)
 val TextMuted = Color(0xFF7A6A5C)
+
+// İlerleme / durum tonları
+val SuccessGreen = Color(0xFF4C8C5A)
+val SuccessGreenLight = Color(0xFFD9E8DC)
+val TrackMuted = Color(0xFFE7DDD0)
