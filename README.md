@@ -27,6 +27,19 @@ Aylık aboneliklerin ve taksitli ödemelerin toplam gider tutarını otomatik he
 
 **Minimum SDK:** 26 (Android 8.0)
 
+## Brandfetch yapılandırması
+
+Abonelik hizmeti araması ve marka logoları için ücretsiz bir Brandfetch Client ID gerekir.
+
+1. Brandfetch Developer Portal üzerinden bir Client ID oluştur.
+2. Projenin takip edilmeyen `local.properties` dosyasına aşağıdaki satırı ekle:
+
+```properties
+BRANDFETCH_CLIENT_ID=client_id_degerin
+```
+
+Client ID tanımlı değilse uygulama çalışmaya devam eder; abonelik adı elle girilebilir ve kartta nötr bir yer tutucu gösterilir.
+
 ## Durum
 
 Aktif geliştirme aşamasında.
