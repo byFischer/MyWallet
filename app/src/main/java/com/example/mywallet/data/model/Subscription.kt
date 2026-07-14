@@ -16,5 +16,7 @@ data class Subscription(
     val billingCycle: String,
     val nextPaymentDate: LocalDate,
     val category: String? = null,
+    val providerDomain: String? = null,
+    val providerBrandId: String? = null,
     val isActive: Boolean = true
 )

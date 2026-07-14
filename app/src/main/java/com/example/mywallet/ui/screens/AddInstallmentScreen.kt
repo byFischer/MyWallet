@@ -1,8 +1,6 @@
 package com.example.mywallet.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -11,12 +9,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mywallet.data.model.Installment
 import com.example.mywallet.viewmodel.InstallmentViewModel
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import com.example.mywallet.domain.ExpenseCalculator
 
-@OptIn(ExperimentalMaterial3Api::class)
+
+
 @Composable
 fun AddInstallmentScreen(
     modifier: Modifier = Modifier,
@@ -26,8 +24,18 @@ fun AddInstallmentScreen(
     var name by remember { mutableStateOf("") }
     var totalAmount by remember { mutableStateOf("") }
     var installmentCount by remember { mutableStateOf("") }
-    var startDate by remember { mutableStateOf(LocalDate.now()) }
-    var showDatePicker by remember { mutableStateOf(false) }
+    var currentInstallment by remember { mutableStateOf("1") }
+
+    val totalCount = installmentCount.toIntOrNull()
+    val currentCount = currentInstallment.toIntOrNull()
+
+    val currentInstallmentHashError =
+        currentInstallment.isNotBlank() &&
+                (
+                        currentCount == null ||
+                        currentCount < 1 ||
+                                (totalCount != null && currentCount > totalCount)
+                        )
 
     Column(
         modifier = modifier
@@ -63,20 +71,30 @@ fun AddInstallmentScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
         OutlinedTextField(
-            value = startDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")),
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Başlangıç Tarihi") },
-            trailingIcon = {
-                IconButton(onClick = { showDatePicker = true }) {
-                    Icon(Icons.Default.DateRange, contentDescription = "Tarih Seç")
+            value = currentInstallment,
+            onValueChange = {newValue ->
+                currentInstallment = newValue.filter { it.isDigit() }
+            },
+            label = {Text("Bu ay kaçıncı taksit?")},
+            isError = currentInstallmentHashError,
+            supportingText = {
+                if (currentInstallmentHashError) {
+                    Text("Değer 1 ile toplam taksit sayısı arasında olmalı")
+                }
+                else{
+                    Text("Örneğin bu ay 4. ödeme yapılacaksa 4 gir")
                 }
             },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number
+            ),
+            singleLine = true,
             modifier = Modifier.fillMaxWidth()
+
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -84,13 +102,24 @@ fun AddInstallmentScreen(
             onClick = {
                 val totalValue = totalAmount.toDoubleOrNull()
                 val countValue = installmentCount.toIntOrNull()
-                if (name.isNotBlank() && totalValue != null && countValue != null && countValue > 0) {
+                val currentValue = currentInstallment.toIntOrNull()
+                if (
+                    name.isNotBlank() &&
+                    totalValue != null &&
+                    countValue != null &&
+                    countValue > 0 &&
+                    currentValue != null &&
+                    currentValue in 1..countValue
+                ) {
+                    val calculatedStartDate =
+                        ExpenseCalculator.calculateStartDate(currentValue)
+
                     viewModel.addInstallment(
                         Installment(
                             name = name,
                             totalAmount = totalValue,
                             installmentCount = countValue,
-                            startDate = startDate
+                            startDate = calculatedStartDate
                         )
                     )
                     onDone()
@@ -104,29 +133,4 @@ fun AddInstallmentScreen(
         }
     }
 
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = startDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        startDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
-                    }
-                    showDatePicker = false
-                }) {
-                    Text("Tamam")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Vazgeç")
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
 }

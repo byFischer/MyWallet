@@ -20,6 +20,30 @@ object ExpenseCalculator {
         }
     }
 
+    fun calculateStartDate(
+        currentInstallment: Int,
+        referenceMonth: YearMonth = YearMonth.now()
+    ): LocalDate {
+        require(currentInstallment > 0)
+
+        return referenceMonth
+            .minusMonths((currentInstallment - 1).toLong())
+            .atDay(1)
+    }
+
+    fun currentInstallmentNumber(
+        installment: Installment,
+        referenceMonth: YearMonth = YearMonth.now()
+    ): Int? {
+        val startMonth = YearMonth.from(installment.startDate)
+        val elapsedMonths = ChronoUnit.MONTHS
+            .between(startMonth, referenceMonth)
+            .toInt()
+        val currentNumber = elapsedMonths + 1
+
+        return currentNumber.takeIf { it in 1..installment.installmentCount }
+    }
+
     fun endDate(installment: Installment) : LocalDate {
         return installment.startDate.plusMonths(installment.installmentCount.toLong())
     }
@@ -77,4 +101,6 @@ object ExpenseCalculator {
         return month.atDay(1).format(formatter)
             .replaceFirstChar { if (it.isLowerCase()) it.titlecase(trLocale) else it.toString() }
     }
+
+
 }

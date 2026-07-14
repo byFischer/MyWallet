@@ -16,6 +16,7 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -33,14 +34,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.mywallet.data.model.Installment
 import com.example.mywallet.data.model.Subscription
+import com.example.mywallet.data.remote.brandfetchLogoUrl
 import com.example.mywallet.domain.ExpenseCalculator
+import com.example.mywallet.ui.components.BrandArtwork
 import com.example.mywallet.viewmodel.DashboardViewModel
 import kotlinx.coroutines.launch
 import java.time.YearMonth
@@ -230,7 +236,11 @@ private fun ExpenseHeaderPage(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = formatCurrency(total),
+            text = if (isCurrentMonth) {
+                formatCurrency(total)
+            } else {
+                "≈ ${formatCurrency(total)}"
+            },
             style = MaterialTheme.typography.displayMedium,
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
@@ -243,25 +253,20 @@ private fun ExpenseHeaderPage(
             modifier = Modifier.height(30.dp),
             contentAlignment = Alignment.Center
         ) {
-            if (isCurrentMonth) {
-                Text(
-                    text = "Bu Ayki Toplam Gider",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    shape = RoundedCornerShape(50)
-                ) {
-                    Text(
-                        text = "Tahmini Gider",
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp)
-                    )
-                }
-            }
+            Text(
+                text = if (isCurrentMonth) {
+                    "Bu Ayki Toplam Gider"
+                } else {
+                    "Abonelik ve taksit planına göre"
+                },
+                style = if (isCurrentMonth) {
+                    MaterialTheme.typography.bodyMedium
+                } else {
+                    MaterialTheme.typography.bodySmall
+                },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
@@ -279,7 +284,7 @@ private fun SubscriptionsList(
         )
     } else {
         LazyColumn(
-            contentPadding = PaddingValues(bottom = 96.dp),
+            contentPadding = PaddingValues(bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(subscriptions, key = { it.id }) { subscription ->
@@ -306,7 +311,7 @@ private fun InstallmentsList(
         )
     } else {
         LazyColumn(
-            contentPadding = PaddingValues(bottom = 96.dp),
+            contentPadding = PaddingValues(bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(installments, key = { it.id }) { installment ->
@@ -394,6 +399,9 @@ fun SubscriptionListItem(
         "WEEKLY" -> "Haftalık"
         else -> "Aylık"
     }
+    val logoUrl = remember(subscription.providerDomain) {
+        brandfetchLogoUrl(subscription.providerDomain)
+    }
 
     ElevatedCard(
         modifier = Modifier
@@ -404,51 +412,74 @@ fun SubscriptionListItem(
             containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(86.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Avatar(
-                    letter = subscription.name.take(1).ifBlank { "?" },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                BrandArtwork(
+                    imageUrl = logoUrl,
+                    contentDescription = "${subscription.name} logosu",
+                    contentScale = ContentScale.Crop,
+                    adaptToAspectRatio = true,
+                    modifier = Modifier
+                        .width(72.dp)
+                        .fillMaxHeight()
                 )
 
-                Spacer(modifier = Modifier.width(14.dp))
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .fillMaxHeight()
+                        .background(
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                        )
+                )
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = subscription.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = cycleLabel,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(start = 14.dp, end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = subscription.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = cycleLabel,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
 
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = formatCurrency(ExpenseCalculator.monthlyAmount(subscription)),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "aylık",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = formatCurrency(ExpenseCalculator.monthlyAmount(subscription)),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "aylık",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
 
-                IconButton(onClick = { expanded = !expanded }) {
-                    Icon(
-                        imageVector = if (expanded) Icons.Default.Close else Icons.Default.Edit,
-                        contentDescription = if (expanded) "Kapat" else "Düzenle",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    IconButton(onClick = { expanded = !expanded }) {
+                        Icon(
+                            imageVector = if (expanded) Icons.Default.Close else Icons.Default.Edit,
+                            contentDescription = if (expanded) "Kapat" else "Düzenle",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
 
@@ -457,7 +488,13 @@ fun SubscriptionListItem(
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
-                Column {
+                Column(
+                    modifier = Modifier.padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp
+                    )
+                ) {
                     Spacer(modifier = Modifier.height(12.dp))
                     HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
                     Spacer(modifier = Modifier.height(16.dp))
@@ -530,11 +567,16 @@ fun SubscriptionListItem(
                             onClick = {
                                 val amountValue = amount.toDoubleOrNull()
                                 if (name.isNotBlank() && amountValue != null) {
+                                    val providerStillMatches = name.trim() == subscription.name
                                     onUpdate(
                                         subscription.copy(
-                                            name = name,
+                                            name = name.trim(),
                                             amount = amountValue,
-                                            billingCycle = billingCycle
+                                            billingCycle = billingCycle,
+                                            providerDomain = subscription.providerDomain
+                                                .takeIf { providerStillMatches },
+                                            providerBrandId = subscription.providerBrandId
+                                                .takeIf { providerStillMatches }
                                         )
                                     )
                                     expanded = false
@@ -561,6 +603,25 @@ fun InstallmentListItem(
     var name by remember(installment.id) { mutableStateOf(installment.name) }
     var totalAmount by remember(installment.id) { mutableStateOf(installment.totalAmount.toString()) }
     var installmentCount by remember(installment.id) { mutableStateOf(installment.installmentCount.toString()) }
+
+    val calculatedCurrentNumber = ExpenseCalculator.currentInstallmentNumber(installment)
+    var currentInstallment by remember(
+        installment.id,
+        installment.startDate,
+        installment.installmentCount
+    ) {
+        mutableStateOf(calculatedCurrentNumber?.toString().orEmpty())
+    }
+
+    val editedTotalCount = installmentCount.toIntOrNull()
+    val editedCurrentCount = currentInstallment.toIntOrNull()
+    val currentInstallmentHasError =
+        calculatedCurrentNumber != null &&
+            (
+                editedCurrentCount == null ||
+                    editedCurrentCount < 1 ||
+                    (editedTotalCount != null && editedCurrentCount > editedTotalCount)
+            )
 
     val remaining = ExpenseCalculator.remainingInstallments(installment)
     val paid = (installment.installmentCount - remaining).coerceIn(0, installment.installmentCount)
@@ -687,6 +748,31 @@ fun InstallmentListItem(
                         modifier = Modifier.fillMaxWidth()
                     )
 
+                    if (calculatedCurrentNumber != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OutlinedTextField(
+                            value = currentInstallment,
+                            onValueChange = { newValue ->
+                                currentInstallment = newValue.filter { it.isDigit() }
+                            },
+                            label = { Text("Bu ay kaçıncı taksit?") },
+                            supportingText = {
+                                if (currentInstallmentHasError) {
+                                    Text("Değer 1 ile toplam taksit sayısı arasında olmalı")
+                                } else {
+                                    Text("Bu ay ödenecek taksit sırası")
+                                }
+                            },
+                            isError = currentInstallmentHasError,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number
+                            ),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
@@ -706,15 +792,41 @@ fun InstallmentListItem(
                             onClick = {
                                 val totalValue = totalAmount.toDoubleOrNull()
                                 val countValue = installmentCount.toIntOrNull()
-                                if (name.isNotBlank() && totalValue != null && countValue != null && countValue > 0) {
-                                    onUpdate(
-                                        installment.copy(
-                                            name = name,
-                                            totalAmount = totalValue,
-                                            installmentCount = countValue
+                                val currentValue = currentInstallment.toIntOrNull()
+
+                                if (
+                                    name.isNotBlank() &&
+                                    totalValue != null &&
+                                    countValue != null &&
+                                    countValue > 0
+                                ) {
+                                    val currentValueIsValid =
+                                        calculatedCurrentNumber == null ||
+                                            (
+                                                currentValue != null &&
+                                                    currentValue in 1..countValue
+                                            )
+
+                                    if (currentValueIsValid) {
+                                        val updatedStartDate =
+                                            if (calculatedCurrentNumber != null) {
+                                                ExpenseCalculator.calculateStartDate(
+                                                    checkNotNull(currentValue)
+                                                )
+                                            } else {
+                                                installment.startDate
+                                            }
+
+                                        onUpdate(
+                                            installment.copy(
+                                                name = name,
+                                                totalAmount = totalValue,
+                                                installmentCount = countValue,
+                                                startDate = updatedStartDate
+                                            )
                                         )
-                                    )
-                                    expanded = false
+                                        expanded = false
+                                    }
                                 }
                             },
                             modifier = Modifier.weight(1f)
